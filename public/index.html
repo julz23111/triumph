@@ -5,18 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Library System</title>
   <link rel="stylesheet" href="styles.css">
+  <meta name="theme-color" content="#0f172a">
+  <link rel="preload" href="styles.css" as="style">
+  <noscript><style>.container{display:none}</style><div style="padding:1rem;font-family:system-ui, -apple-system, Segoe UI, Roboto;">JavaScript is required to use the Library System. Please enable JavaScript.</div></noscript>
 </head>
 <body>
   <div class="container">
     <header>
       <h1>📚 Library System</h1>
-      <a href="/admin" class="admin-link">Admin Dashboard</a>
+      <a href="/admin/" class="admin-link">Admin Dashboard</a>
     </header>
 
-    <div class="tabs">
-      <button class="tab-btn active" data-tab="add-book">Add Book</button>
-      <button class="tab-btn" data-tab="checkout">Check Out</button>
-      <button class="tab-btn" data-tab="browse">Browse Books</button>
+    <div id="alerts" aria-live="polite" style="display:none" class="alert"></div>
+
+    <div class="tabs" role="tablist">
+      <button class="tab-btn active" role="tab" data-tab="add-book">Add Book</button>
+      <button class="tab-btn" role="tab" data-tab="checkout">Check Out</button>
+      <button class="tab-btn" role="tab" data-tab="browse">Browse Books</button>
     </div>
 
     <!-- Add Book Tab -->
@@ -30,6 +35,8 @@
           📷 Take Photo
         </button>
         <div id="add-book-preview" class="image-preview"></div>
+        <p id="add-book-fileinfo" class="hint" style="display:none"></p>
+        <p class="hint">Accepted: JPG/PNG. Up to ~10 MB per image. Clear, upright spines work best.</p>
       </div>
 
       <button id="analyze-btn" class="btn btn-success" style="display: none;">
@@ -66,6 +73,7 @@
         <select id="book-select" class="input-field">
           <option value="">-- Select a book --</option>
         </select>
+        <p class="hint">Tip: You can also take a photo of the spine instead.</p>
       </div>
 
       <div class="camera-section" id="checkout-camera-section" style="display: none;">
@@ -90,11 +98,22 @@
     </div>
   </div>
 
-  <div id="loading" class="loading" style="display: none;">
+  <div id="loading" class="loading" style="display:none" aria-hidden="true"></div>
+
+  <!-- Templates used by app.js -->
+  <template id="book-card-template">
+    <div class="book-card">
+      <div class="book-title"></div>
+      <div class="book-author"></div>
+      <div class="book-meta"></div>
+    </div>
+  </template>
+
+  <template id="loading-template">
     <div class="spinner"></div>
     <p>Processing...</p>
-  </div>
+  </template>
 
-  <script src="app.js"></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>

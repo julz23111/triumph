@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Dashboard - Library System</title>
   <link rel="stylesheet" href="styles.css">
+  <meta name="theme-color" content="#0f172a">
+  <link rel="preload" href="styles.css" as="style">
+  <noscript><style>.container{display:none}</style><div style="padding:1rem;font-family:system-ui, -apple-system, Segoe UI, Roboto;">JavaScript is required to use the Admin Dashboard.</div></noscript>
 </head>
 <body>
   <div class="container">
@@ -40,11 +43,12 @@
     </div>
   </div>
 
-  <div id="loading" class="loading" style="display: none;">
+  <div id="loading" class="loading" style="display:none" aria-hidden="true"></div>
+
+  <template id="loading-template">
     <div class="spinner"></div>
     <p>Loading...</p>
-  </div>
-
-  <script src="admin.js"></script>
+  </template>
+  <script type="module" src="admin.js"></script>
 </body>
 </html>

@@ -1,119 +1,116 @@
-// API Base URL
+// public/admin.js (ES module)
+
 const API_URL = '';
+const $ = (s, r=document) => r.querySelector(s);
+const loadingEl = $('#loading');
+const loadingTpl = $('#loading-template');
 
-// Load dashboard data on page load
-document.addEventListener('DOMContentLoaded', () => {
-  loadCheckouts();
-  loadBooks();
-});
+function showLoading(text='Loading...'){
+  loadingEl.innerHTML = '';
+  if (loadingTpl?.content){
+    const node = loadingTpl.content.cloneNode(true);
+    const p = node.querySelector('p');
+    if (p) p.textContent = text;
+    loadingEl.appendChild(node);
+  } else {
+    loadingEl.textContent = text;
+  }
+  loadingEl.style.display = 'flex';
+  loadingEl.setAttribute('aria-hidden','false');
+}
+function hideLoading(){
+  loadingEl.style.display = 'none';
+  loadingEl.setAttribute('aria-hidden','true');
+  loadingEl.innerHTML = '';
+}
 
-async function loadCheckouts() {
-  showLoading(true);
-  
+function escapeHtml(text=''){
+  return String(text).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#039;'}[ch]));
+}
+function formatDate(s){ const d = new Date(s); return d.toLocaleDateString()+' '+d.toLocaleTimeString(); }
+
+async function getJSON(url){
+  const res = await fetch(url);
+  if(!res.ok) throw new Error(`${url} -> ${res.status}`);
+  return res.json();
+}
+
+async function loadStats(){
   try {
-    const response = await fetch(`${API_URL}/api/checkouts`);
-    const data = await response.json();
-    
-    // Update stats
-    document.getElementById('total-checkouts').textContent = data.checkouts.length;
-    
-    // Display checkouts table
-    const container = document.getElementById('checkouts-table');
-    
-    if (data.checkouts.length === 0) {
-      container.innerHTML = '<div class="empty-state"><p>No checkouts yet</p></div>';
-    } else {
-      container.innerHTML = `
-        <table>
-          <thead>
-            <tr>
-              <th>Date/Time</th>
-              <th>User</th>
-              <th>Book Title</th>
-              <th>Author</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${data.checkouts.map(checkout => `
-              <tr>
-                <td>${formatDate(checkout.checkout_date)}</td>
-                <td>${escapeHtml(checkout.user_name)}</td>
-                <td>${escapeHtml(checkout.book_title)}</td>
-                <td>${escapeHtml(checkout.book_author)}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      `;
-    }
-  } catch (error) {
-    document.getElementById('checkouts-table').innerHTML = 
-      `<div class="empty-state"><p>Error loading checkouts: ${error.message}</p></div>`;
-  } finally {
-    showLoading(false);
+    const data = await getJSON(`${API_URL}/api/admin/summary`);
+    $('#total-books').textContent = data?.totalBooks ?? 0;
+    $('#total-checkouts').textContent = data?.totalCheckouts ?? 0;
+  } catch(e){
+    console.error('Error loading stats:', e);
   }
 }
 
-async function loadBooks() {
+function renderTable(el, rows, headers){
+  const tbl = document.createElement('table');
+  if (headers?.length){
+    const thead = document.createElement('thead');
+    const trh = document.createElement('tr');
+    headers.forEach(h=>{
+      const th = document.createElement('th');
+      th.textContent = h;
+      trh.appendChild(th);
+    });
+    thead.appendChild(trh);
+    tbl.appendChild(thead);
+  }
+  const tbody = document.createElement('tbody');
+  rows.forEach(r=>{
+    const tr = document.createElement('tr');
+    r.forEach(c=>{
+      const td = document.createElement('td');
+      td.textContent = c;
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  tbl.appendChild(tbody);
+  el.innerHTML = '';
+  el.appendChild(tbl);
+}
+
+async function loadCheckouts(){
   try {
-    const response = await fetch(`${API_URL}/api/books`);
-    const data = await response.json();
-    
-    // Update stats
-    document.getElementById('total-books').textContent = data.books.length;
-    
-    // Display books table
-    const container = document.getElementById('all-books-table');
-    
-    if (data.books.length === 0) {
-      container.innerHTML = '<div class="empty-state"><p>No books in library yet</p></div>';
-    } else {
-      container.innerHTML = `
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Title</th>
-              <th>Author</th>
-              <th>Date Added</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${data.books.map(book => `
-              <tr>
-                <td>${book.id}</td>
-                <td>${escapeHtml(book.title)}</td>
-                <td>${escapeHtml(book.author)}</td>
-                <td>${formatDate(book.created_at)}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      `;
-    }
-  } catch (error) {
-    document.getElementById('all-books-table').innerHTML = 
-      `<div class="empty-state"><p>Error loading books: ${error.message}</p></div>`;
+    const data = await getJSON(`${API_URL}/api/admin/checkouts`);
+    const rows = (data?.items||[]).map(x=>[
+      formatDate(x.checkout_date),
+      escapeHtml(x.user_name),
+      escapeHtml(x.book_title),
+      escapeHtml(x.book_author)
+    ]);
+    renderTable($('#checkouts-table'), rows, ['Date/Time','User','Book Title','Author']);
+    $('#total-checkouts').textContent = rows.length;
+  } catch(e){
+    $('#checkouts-table').innerHTML = `<div class="empty-state"><p>Error loading checkouts: ${escapeHtml(e.message)}</p></div>`;
   }
 }
 
-// Helper functions
-function showLoading(show) {
-  document.getElementById('loading').style.display = show ? 'flex' : 'none';
+async function loadBooks(){
+  try {
+    const data = await getJSON(`${API_URL}/api/admin/books`);
+    const rows = (data?.books||[]).map(b=>[
+      b.id,
+      escapeHtml(b.title),
+      escapeHtml(b.author),
+      formatDate(b.created_at)
+    ]);
+    renderTable($('#all-books-table'), rows, ['ID','Title','Author','Date Added']);
+    $('#total-books').textContent = rows.length;
+  } catch(e){
+    $('#all-books-table').innerHTML = `<div class="empty-state"><p>Error loading books: ${escapeHtml(e.message)}</p></div>`;
+  }
 }
 
-function escapeHtml(text) {
-  const map = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#039;'
-  };
-  return text.replace(/[&<>"']/g, m => map[m]);
-}
+window.loadCheckouts = async function(){ try { showLoading('Refreshing...'); await loadCheckouts(); } finally { hideLoading(); } }
 
-function formatDate(dateString) {
-  const date = new Date(dateString);
-  return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-}
+(async function init(){
+  try {
+    showLoading('Loading dashboard...');
+    await Promise.all([loadStats(), loadCheckouts(), loadBooks()]);
+  } catch(e){ console.error(e); }
+  finally { hideLoading(); }
+})();
