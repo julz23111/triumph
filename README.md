@@ -1,116 +1,126 @@
-# 📚 Triumph - Library System
+# Library Vision
 
-A modern, mobile-friendly web application for managing library books with AI-powered image recognition using OpenAI's Vision API.
+A full-stack remake of the Library Vision app using Node.js, Express, PostgreSQL, and a Vite + React frontend. Admins can upload batches of book spine photos, trigger OCR (Tesseract.js by default with optional OpenAI Vision fallback), and run a streamlined single-photo checkout workflow.
 
-## Features
+## Monorepo structure
 
-- 📸 **Image Recognition**: Take photos of books to automatically extract titles and authors
-- 📖 **Book Management**: Add books to the library database
-- ✅ **Check Out System**: Log book checkouts with user names
-- 📊 **Admin Dashboard**: View all checkouts and library statistics
-- 📱 **Mobile Friendly**: Responsive design optimized for mobile devices
-- 🤖 **AI Powered**: Uses OpenAI Vision API for book information extraction
+```
+.
+├── server   # Express API, Prisma models, OCR queue
+└── web      # Vite + React mobile-first dashboard
+```
 
 ## Prerequisites
 
-- Node.js (v14 or higher)
-- OpenAI API key ([Get one here](https://platform.openai.com/api-keys))
+- Node.js 18+
+- PostgreSQL database (local or hosted)
 
-## Installation
+## Environment configuration
 
-1. Clone the repository:
-```bash
-git clone https://github.com/julz23111/triumph.git
-cd triumph
-```
+Copy `.env.example` to `.env` and populate the values you need:
 
-2. Install dependencies:
+- `DATABASE_URL` — PostgreSQL connection string.
+- `SESSION_SECRET` — random string (16+ chars) for cookie sessions.
+- `OCR_PROVIDER` — `tesseract` (default) or `openai`.
+- `OPENAI_API_KEY` — only required if `OCR_PROVIDER=openai`.
+- `STORAGE_DRIVER` — `local` (saves to `/uploads`) or `s3` (for R2/S3 compatible storage). When using `s3`, provide the `S3_*` variables.
+- `PORT` / `CORS_ORIGIN` — Express port and web origin.
+- `VITE_API_BASE_URL` — API base URL used by the web app. During local development keep it at `http://localhost:4000`.
+
+> Never commit real secrets. `.env.example` is safe to share.
+
+## Install dependencies
+
 ```bash
 npm install
 ```
 
-3. Create a `.env` file in the root directory:
+This installs dependencies for both workspaces (`server` and `web`).
+
+## Database
+
+Prisma migrations live under `server/prisma/migrations`.
+
+- Apply migrations in production:
+
+  ```bash
+  npm run migrate
+  ```
+
+- During development you can use Prisma's migrate dev flow:
+
+  ```bash
+  npm run migrate --workspace server -- migrate:dev
+  ```
+
+- Seed an admin user (defaults to `admin@example.com` / `admin123`):
+
+  ```bash
+  npm run seed
+  ```
+
+Use `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` env vars to change seed credentials.
+
+## Development
+
+Run the API and web app together:
+
 ```bash
-cp .env.example .env
+npm run dev
 ```
 
-4. Add your OpenAI API key to the `.env` file:
-```
-OPENAI_TOKEN=your_openai_api_key_here
-```
+- Express API: http://localhost:4000
+- React front-end: http://localhost:5173
 
-## Usage
+The server prints `Step 1 done` after the scaffold, migrations, basic auth, and baseline routes are in place.
 
-1. Start the server:
+## Production build
+
 ```bash
-npm start
+npm run build
 ```
 
-2. Open your browser and navigate to:
-   - Main app: http://localhost:3000
-   - Admin dashboard: http://localhost:3000/admin
+This builds the Express project (`server/dist`) and the Vite front-end (`web/dist`). Deploy the front-end to Cloudflare Pages and host the Express API (or use Pages Functions + the included Neon-compatible client).
 
-## How to Use
+## Scripts
 
-### Adding Books
-1. Go to the "Add Book" tab
-2. Click "📷 Take Photo" and select/capture an image of a book
-3. Click "Analyze & Add Book"
-4. The AI will extract the title and author and add it to the library
+- `npm run migrate` – apply Prisma migrations.
+- `npm run seed` – seed the database with an initial admin.
+- `npm run dev` – run API + web concurrently.
+- `npm run build` – build both workspaces.
+- `npm run lint` – run TypeScript checks for server and web.
 
-### Checking Out Books
-1. Go to the "Check Out" tab
-2. Enter your name
-3. Either:
-   - Select an existing book from the dropdown, OR
-   - Take a photo of a new book
-4. Click "Check Out Book"
+## API quick reference
 
-### Admin Dashboard
-- View total books and checkouts
-- See detailed checkout history with timestamps
-- Browse all books in the library
-- Refresh data in real-time
+| Method | Endpoint | Notes |
+| ------ | -------- | ----- |
+| POST | `/auth/login` | Email/password login (admin only uploads).
+| POST | `/auth/logout` | Clear cookie session.
+| GET | `/auth/me` | Current session.
+| POST | `/batches` | Create a batch (admin).
+| GET | `/batches` | List batches with image summaries.
+| GET | `/batches/:id` | Batch detail with images.
+| POST | `/images/upload?batchId=` | Upload book spine photos (multer, admin).
+| GET | `/images/:id` | Fetch image + OCR data.
+| PATCH | `/images/:id` | Update title/author.
+| POST | `/images/:id/checkout` | Create/find book, mark image checked out.
+| GET | `/exports/checkouts.csv` | Download checkout history.
 
-## API Endpoints
+## Storage
 
-### POST /api/books/analyze
-Analyze a book image and add it to the database
-- Body: multipart/form-data with `image` field
-- Returns: Book information (id, title, author)
+- Local dev stores originals + thumbnails under `/uploads`. Express statically serves `/uploads/*`.
+- For S3/R2, set `STORAGE_DRIVER=s3` and provide bucket credentials plus an optional `S3_PUBLIC_URL` for generating public URLs.
 
-### GET /api/books
-Get all books in the library
-- Returns: Array of books
+## OCR queue
 
-### POST /api/checkout
-Check out a book
-- Body: multipart/form-data with `userName` and either `bookId` or `image`
-- Returns: Checkout information
+Uploads create OCR jobs stored in the database. A lightweight queue powered by `p-queue` grabs pending jobs, runs OCR via Tesseract.js (auto-rotate + resize) or OpenAI Vision, and updates image metadata/status.
 
-### GET /api/checkouts
-Get all checkout records
-- Returns: Array of checkouts with book and user information
+## Deployment notes
 
-## Technology Stack
-
-- **Backend**: Node.js, Express
-- **Database**: SQLite3
-- **AI**: OpenAI Vision API (GPT-4o-mini)
-- **Frontend**: Vanilla JavaScript, HTML5, CSS3
-- **Image Processing**: Multer for file uploads
-
-## Mobile Features
-
-- Camera integration for capturing book images
-- Responsive design that works on all screen sizes
-- Touch-friendly interface
-- Optimized for mobile browsers
+- The API reads the OpenAI API key from `process.env.OPENAI_API_KEY`. Never log or hardcode it.
+- Consider Neon serverless PostgreSQL when deploying to Cloudflare Pages Functions. The repo includes the `@neondatabase/serverless` client and an optional stub at `server/functions/api/index.ts` showing how to bridge Express inside a Pages Function.
+- The web app is mobile-first, with sticky checkout actions for quick one-handed processing.
 
 ## License
 
-ISC
-
-## Author
-
-Created for easy library management with modern AI technology.
+MIT

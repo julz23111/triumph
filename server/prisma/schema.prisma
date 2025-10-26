@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  email         String    @unique
+  passwordHash  String    @map("password_hash")
+  isAdmin       Boolean   @default(false) @map("is_admin")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  batches       Batch[]
+  checkouts     Checkout[] @relation("CheckoutAdmin")
+}
+
+model Batch {
+  id        Int      @id @default(autoincrement())
+  admin     User     @relation(fields: [adminId], references: [id])
+  adminId   Int      @map("admin_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  images    Image[]
+}
+
+model Image {
+  id          Int        @id @default(autoincrement())
+  batch       Batch      @relation(fields: [batchId], references: [id])
+  batchId     Int        @map("batch_id")
+  storagePath String     @map("storage_path")
+  thumbPath   String?    @map("thumb_path")
+  ocrText     String?    @map("ocr_text")
+  title       String?
+  author      String?
+  status      ImageStatus @default(pending)
+  createdAt   DateTime   @default(now()) @map("created_at")
+  checkout    Checkout?
+  ocrJobs     OCRJob[]
+}
+
+model Book {
+  id        Int        @id @default(autoincrement())
+  title     String
+  author    String
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+  checkouts Checkout[]
+
+  @@unique([title, author])
+}
+
+model Checkout {
+  id            Int      @id @default(autoincrement())
+  image         Image    @relation(fields: [imageId], references: [id])
+  imageId       Int      @map("image_id")
+  book          Book     @relation(fields: [bookId], references: [id])
+  bookId        Int      @map("book_id")
+  admin         User     @relation("CheckoutAdmin", fields: [adminId], references: [id])
+  adminId       Int      @map("admin_id")
+  checkedOutAt  DateTime @default(now()) @map("checked_out_at")
+}
+
+model OCRJob {
+  id        Int        @id @default(autoincrement())
+  image     Image      @relation(fields: [imageId], references: [id])
+  imageId   Int        @map("image_id")
+  status    OCRJobStatus @default(queued)
+  error     String?
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+}
+
+enum ImageStatus {
+  pending
+  ocr_done
+  checked_out
+}
+
+enum OCRJobStatus {
+  queued
+  working
+  done
+  error
+}
