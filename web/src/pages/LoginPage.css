@@ -1,0 +1,31 @@
+.login-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+  background: radial-gradient(circle at top, rgba(99, 102, 241, 0.25), transparent 65%), #020617;
+}
+
+.login-card {
+  width: min(420px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.login-card h2 {
+  margin: 0;
+  font-size: 1.8rem;
+}
+
+.login-card p {
+  margin: 0;
+  color: #94a3b8;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
