@@ -219,7 +219,47 @@ function displayImagePreview(file, containerId) {
 
 function showResult(elementId, message, type) {
   const resultElement = document.getElementById(elementId);
-  resultElement.innerHTML = message;
+  
+  // Safely set HTML content by creating a text node for dynamic parts
+  // Parse message to handle <br> tags and <strong> tags safely
+  const div = document.createElement('div');
+  
+  // Split by <br> tags
+  const parts = message.split('<br>');
+  parts.forEach((part, index) => {
+    if (index > 0) {
+      div.appendChild(document.createElement('br'));
+    }
+    
+    // Handle <strong> tags
+    if (part.includes('<strong>') && part.includes('</strong>')) {
+      const strongRegex = /<strong>(.*?)<\/strong>/g;
+      let lastIndex = 0;
+      let match;
+      
+      while ((match = strongRegex.exec(part)) !== null) {
+        // Add text before strong tag
+        if (match.index > lastIndex) {
+          div.appendChild(document.createTextNode(part.substring(lastIndex, match.index)));
+        }
+        // Add strong element
+        const strong = document.createElement('strong');
+        strong.textContent = match[1];
+        div.appendChild(strong);
+        lastIndex = strongRegex.lastIndex;
+      }
+      
+      // Add remaining text
+      if (lastIndex < part.length) {
+        div.appendChild(document.createTextNode(part.substring(lastIndex)));
+      }
+    } else {
+      div.appendChild(document.createTextNode(part));
+    }
+  });
+  
+  resultElement.innerHTML = '';
+  resultElement.appendChild(div);
   resultElement.className = `result ${type}`;
   
   // Auto-hide after 5 seconds for success messages

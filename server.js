@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
+const rateLimit = require('express-rate-limit');
 const path = require('path');
 const { initDatabase, addBook, getAllBooks, checkoutBook, getAllCheckouts, getBook } = require('./database');
 const { analyzeBookImage } = require('./openai-service');
@@ -32,6 +33,16 @@ const upload = multer({
 
 // Initialize database
 initDatabase();
+
+// Rate limiting for expensive operations
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.'
+});
+
+// Apply rate limiting to API routes
+app.use('/api/', apiLimiter);
 
 // API Routes
 
