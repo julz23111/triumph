@@ -47,10 +47,14 @@ function createTables() {
 // Add a book to the database
 async function addBook(title, author) {
   return new Promise((resolve, reject) => {
-    // First check if book already exists
+    // Normalize title and author for comparison
+    const normalizedTitle = title.toLowerCase().trim();
+    const normalizedAuthor = author.toLowerCase().trim();
+    
+    // First check if book already exists (case-insensitive)
     db.get(
-      'SELECT id FROM books WHERE title = ? AND author = ?',
-      [title, author],
+      'SELECT id FROM books WHERE LOWER(TRIM(title)) = ? AND LOWER(TRIM(author)) = ?',
+      [normalizedTitle, normalizedAuthor],
       (err, row) => {
         if (err) {
           reject(err);

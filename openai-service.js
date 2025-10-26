@@ -36,18 +36,21 @@ async function analyzeBookImage(base64Image) {
       const jsonMatch = content.match(/\{[^}]+\}/);
       if (jsonMatch) {
         const bookInfo = JSON.parse(jsonMatch[0]);
-        return {
-          title: bookInfo.title || 'Unknown',
-          author: bookInfo.author || 'Unknown'
-        };
+        // Validate that we have the expected structure
+        if (bookInfo && typeof bookInfo === 'object') {
+          return {
+            title: bookInfo.title || 'Unknown',
+            author: bookInfo.author || 'Unknown'
+          };
+        }
       }
     } catch (parseError) {
-      console.error('Error parsing OpenAI response:', parseError);
+      console.error('Error parsing OpenAI JSON response:', parseError);
     }
 
     // Fallback: try to extract title and author from text
-    const titleMatch = content.match(/title["\s:]+([^",\n]+)/i);
-    const authorMatch = content.match(/author["\s:]+([^",\n]+)/i);
+    const titleMatch = content.match(/["']?title["']?\s*:\s*["']([^"'\n]+)["']/i);
+    const authorMatch = content.match(/["']?author["']?\s*:\s*["']([^"'\n]+)["']/i);
 
     return {
       title: titleMatch ? titleMatch[1].trim() : 'Unknown',

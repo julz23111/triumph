@@ -1,7 +1,6 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const bodyParser = require('body-parser');
 const multer = require('multer');
 const path = require('path');
 const { initDatabase, addBook, getAllBooks, checkoutBook, getAllCheckouts, getBook } = require('./database');
@@ -12,15 +11,23 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
-app.use(bodyParser.json({ limit: '50mb' }));
-app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static('public'));
 
 // Configure multer for file uploads
 const storage = multer.memoryStorage();
 const upload = multer({ 
   storage: storage,
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (req, file, cb) => {
+    // Accept only image files
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  }
 });
 
 // Initialize database
@@ -58,7 +65,7 @@ app.post('/api/books/analyze', upload.single('image'), async (req, res) => {
     });
   } catch (error) {
     console.error('Error analyzing book:', error);
-    res.status(500).json({ error: 'Failed to analyze book image', details: error.message });
+    res.status(500).json({ error: 'Failed to analyze book image' });
   }
 });
 
@@ -123,7 +130,7 @@ app.post('/api/checkout', upload.single('image'), async (req, res) => {
     });
   } catch (error) {
     console.error('Error checking out book:', error);
-    res.status(500).json({ error: 'Failed to checkout book', details: error.message });
+    res.status(500).json({ error: 'Failed to checkout book' });
   }
 });
 
